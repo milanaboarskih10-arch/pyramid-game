@@ -19,6 +19,7 @@
         .page{width:100%;max-width:400px;text-align:center}
         h1{font-size:3rem;margin-bottom:30px;letter-spacing:3px;font-weight:bold}
         h2{font-size:2.5rem;margin-bottom:20px;font-weight:bold}
+        h3{font-size:1.2rem;margin-bottom:20px;color:#aaa;font-weight:normal}
         input,select{
             width:100%;
             padding:15px;
@@ -69,7 +70,7 @@
         .small-btn{width:auto;padding:10px 20px;font-size:0.9rem;display:inline-block;margin:5px}
         .creator-link{color:#444;font-size:0.7rem;margin-top:40px;cursor:pointer;text-decoration:underline}
 
-        /* СТИЛИ РЕЗУЛЬТАТОВ */
+        /* РЕЗУЛЬТАТЫ */
         .rank-block{
             border:1px solid #fff;
             border-radius:15px;
@@ -92,6 +93,18 @@
             color:#aaa;
             font-size:1rem;
             margin-left:8px;
+        }
+        .wait-text{
+            font-size:1.3rem;
+            margin:40px 0;
+            letter-spacing:1px;
+            line-height:1.5;
+        }
+        .closed-text{
+            font-size:1.3rem;
+            margin:40px 0;
+            letter-spacing:1px;
+            color:#888;
         }
     </style>
 </head>
@@ -118,8 +131,11 @@
 </div>
 
 <div id="resultPage" class="page hidden">
-    <h2 id="resultTitle">Wait for results</h2>
+    <h2 id="resultTitle"></h2>
+    <h3 id="resultSubtitle" class="hidden"></h3>
     <div id="resultsBox"></div>
+    <p id="waitMsg" class="wait-text hidden">Voting is not yet complete.<br>Please wait for the results after the voting is over.</p>
+    <p id="closedMsg" class="closed-text hidden">Voting is closed.<br>Please wait until Thursday.</p>
     <p id="timerText" class="info hidden"></p>
     <button class="small-btn" id="logoutBtn" style="margin-top:30px;background:transparent;border:1px solid #333;color:#aaa">Выйти</button>
 </div>
@@ -135,6 +151,28 @@
 </div>
 
 <script>
+    // НАСТРОЙКИ
+    var GAME_NUMBER = 4; // Текущая игра — 4-я
+
+    // Время МСК: голосование чт 12:00 – пт 14:00
+    var START_DAY = 4;    // Четверг
+    var START_HOUR = 12;  // 12:00 МСК
+    var END_DAY = 5;      // Пятница
+    var END_HOUR = 14;    // 14:00 МСК
+
+    // Результаты видны до понедельника 00:00
+    var RESULTS_END_DAY = 1;   // Понедельник
+    var RESULTS_END_HOUR = 0;  // 00:00 МСК
+
+    // ЗАРАНЕЕ ЗАПОЛНЕННЫЕ РЕЗУЛЬТАТЫ 4-Й ИГРЫ
+    var FIXED_RESULTS = {
+        A: ['Сольюн', 'Минджи', 'София', 'Ынджон'],
+        B: ['Суджи', 'Джеи', 'Юнджин', 'Винтер', 'Вонхи', 'Со До А'],
+        C: ['Па Гю Ён', 'Ли Ю Ми', 'Сондже'],
+        D: ['Чон Хо Ён'],
+        F: ['Ким Ён Ха']
+    };
+
     let players = JSON.parse(localStorage.getItem('pyramid_players') || '["Алиса","Боб","Чарли","Диана","Ева","Фрэнк"]');
     let votes = JSON.parse(localStorage.getItem('pyramid_votes') || '{}');
     let user = null;
@@ -147,6 +185,37 @@
     function show(id){
         document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
         document.getElementById(id).classList.remove('hidden');
+    }
+
+    // МСК ВРЕМЯ
+    function getMSK(){
+        var now = new Date();
+        var utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+        return new Date(utc + (3 * 3600000));
+    }
+
+    // ПЕРИОДЫ
+    function isVotingOpen(){
+        var msk = getMSK();
+        var day = msk.getDay();
+        var hour = msk.getHours();
+        if(day === START_DAY && hour >= START_HOUR) return true;
+        if(day === END_DAY && hour < END_HOUR) return true;
+        return false;
+    }
+
+    function isResultsVisible(){
+        var msk = getMSK();
+        var day = msk.getDay();
+        var hour = msk.getHours();
+        if(day === END_DAY && hour >= END_HOUR) return true;
+        if(day === 6 || day === 0) return true;
+        if(day === RESULTS_END_DAY && hour < RESULTS_END_HOUR) return true;
+        return false;
+    }
+
+    function isClosed(){
+        return !isVotingOpen() && !isResultsVisible();
     }
 
     // ЛОГИН
@@ -167,6 +236,18 @@
         var n=nameInp.value.trim();
         if(!n) return;
         if(!players.includes(n)){loginErr.textContent='Вы не в списке участников';loginErr.classList.remove('hidden');return}
+
+        if(isClosed()){
+            loginErr.textContent='Voting is closed. Please wait until Thursday.';
+            loginErr.classList.remove('hidden');return;
+        }
+
+        if(isResultsVisible()){
+            user=n;
+            showResultsPage();
+            return;
+        }
+
         if(votes[n]){loginErr.textContent='Вы уже проголосовали';loginErr.classList.remove('hidden');return}
         user=n;
         buildVote();
@@ -208,43 +289,44 @@
         if(ch.includes(user)){document.getElementById('voteError').textContent='Нельзя голосовать за себя';document.getElementById('voteError').classList.remove('hidden');return}
         votes[user]=ch;
         save();
-        showResults();
+        showWaitPage();
     });
 
-    // РЕЗУЛЬТАТЫ
-    function showResults(){
+    // СТРАНИЦА ПОСЛЕ ГОЛОСА
+    function showWaitPage(){
         show('resultPage');
-        document.getElementById('resultTitle').textContent='RESULTS';
-        document.getElementById('timerText').classList.add('hidden');
-        var cnt={};
-        players.forEach(p=>cnt[p]=0);
-        Object.values(votes).forEach(a=>a.forEach(n=>{if(cnt[n]!==undefined)cnt[n]++}));
-        var voters=Object.keys(votes);
-        var ranks={A:[],B:[],C:[],D:[],F:[]};
-        players.forEach(p=>{
-            var c=cnt[p]||0;
-            if(c===0||!voters.includes(p))ranks.F.push({n:p,c:c});
-            else if(c>=7)ranks.A.push({n:p,c:c});
-            else if(c>=5)ranks.B.push({n:p,c:c});
-            else if(c>=3)ranks.C.push({n:p,c:c});
-            else if(c>=2)ranks.D.push({n:p,c:c});
-            else ranks.F.push({n:p,c:c});
-        });
+        document.getElementById('resultTitle').textContent = '';
+        document.getElementById('resultSubtitle').classList.add('hidden');
+        document.getElementById('resultsBox').innerHTML = '';
+        document.getElementById('resultsBox').classList.add('hidden');
+        document.getElementById('waitMsg').classList.remove('hidden');
+        document.getElementById('closedMsg').classList.add('hidden');
+        document.getElementById('timerText').classList.remove('hidden');
+        document.getElementById('timerText').textContent = 'Результаты — пятница 14:00 МСК';
+    }
 
-        ['A','B','C','D','F'].forEach(r=>ranks[r].sort((a,b)=>b.c-a.c||a.n.localeCompare(b.n)));
+    // СТРАНИЦА РЕЗУЛЬТАТОВ (используем готовые результаты 4-й игры)
+    function showResultsPage(){
+        show('resultPage');
+        document.getElementById('resultTitle').textContent = 'RESULTS';
+        document.getElementById('resultSubtitle').textContent = 'Results of the ' + GAME_NUMBER + 'th game of pyramid';
+        document.getElementById('resultSubtitle').classList.remove('hidden');
+        document.getElementById('resultsBox').classList.remove('hidden');
+        document.getElementById('waitMsg').classList.add('hidden');
+        document.getElementById('closedMsg').classList.add('hidden');
+        document.getElementById('timerText').classList.add('hidden');
 
         var box=document.getElementById('resultsBox');
         box.innerHTML='';
-        ['A','B','C','D','F'].forEach(r=>{
-            if(ranks[r].length===0)return;
-            var block=document.createElement('div');
-            block.className='rank-block';
-            var title='<div class="rank-title">'+r+'</div>';
-            var names='';
-            ranks[r].forEach(e=>{
-                names+='<span class="rank-name">'+e.n+' <span class="rank-count">('+e.c+')</span></span>';
+        ['A','B','C','D','F'].forEach(function(rank){
+            var names = FIXED_RESULTS[rank];
+            if(!names || names.length === 0) return;
+            var block = document.createElement('div');
+            block.className = 'rank-block';
+            block.innerHTML = '<div class="rank-title">' + rank + '</div>';
+            names.forEach(function(name){
+                block.innerHTML += '<span class="rank-name">' + name + '</span>';
             });
-            block.innerHTML=title+names;
             box.appendChild(block);
         });
     }
