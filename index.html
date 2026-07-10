@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Pyramid Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background-color: black;
+            font-family: 'Arial Narrow', 'Arial', sans-serif;
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1, h2 {
+            font-family: 'Arial Narrow', 'Arial', sans-serif;
+            font-weight: bold;
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+        h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+        }
+        h2 {
+            font-size: 2.5rem;
+        }
+        input, select {
+            background: black;
+            border: 1px solid white;
+            color: white;
+            padding: 12px 15px;
+            font-family: 'Arial Narrow', 'Arial', sans-serif;
+            font-size: 1.2rem;
+            width: 100%;
+            margin-bottom: 15px;
+            text-align: center;
+            border-radius: 0;
+            -webkit-appearance: none;
+            appearance: none;
+            outline: none;
+        }
+        input:focus, select:focus {
+            border-color: #ccc;
+            box-shadow: 0 0 5px rgba(255,255,255,0.3);
+        }
+        select {
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M7 10l5 5 5-5z"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 15px center;
+            background-size: 20px;
+            cursor: pointer;
+        }
+        select option {
+            background: black;
+            color: white;
+        }
+        button {
+            background: white;
+            color: black;
+            border: none;
+            padding: 15px 30px;
+            font-family: 'Arial Narrow', 'Arial', sans-serif;
+            font-weight: bold;
+            font-size: 1.3rem;
+            letter-spacing: 2px;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-top: 10px;
+            width: 100%;
+            transition: 0.2s;
+        }
+        button:hover {
+            background: #ddd;
+        }
+        button:active {
+            background: #bbb;
+        }
+        button:disabled {
+            background: #555;
+            color: #999;
+            cursor: not-allowed;
+        }
+        .hidden {
+            display: none !important;
+        }
+        .vote-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        .vote-row label {
+            font-weight: bold;
+            font-size: 1.2rem;
+            min-width: 30px;
+            text-align: right;
+        }
+        .results-table {
+            width: 100%;
+            margin-top: 20px;
+            text-align: left;
+        }
+        .rank-row {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 8px;
+        }
+        .rank-letter {
+            font-weight: bold;
+            font-size: 2rem;
+            width: 50px;
+            flex-shrink: 0;
+        }
+        .rank-names {
+            font-size: 1.2rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: baseline;
+        }
+        .rank-names span {
+            white-space: nowrap;
+        }
+        .vote-count {
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-left: 3px;
+        }
+        .error {
+            color: #ff6b6b;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        .success {
+            color: #4caf50;
+            margin: 10px 0;
+            font-size: 0.9rem;
+        }
+        .info {
+            color: #aaa;
+            font-size: 0.9rem;
+            margin: 15px 0;
+        }
+        .admin-panel {
+            margin-bottom: 20px;
+            text-align: left;
+            border: 1px solid #333;
+            padding: 15px;
+        }
+        .admin-panel h3 {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .admin-panel textarea {
+            width: 100%;
+            background: black;
+            border: 1px solid white;
+            color: white;
+            padding: 10px;
+            font-family: monospace;
+            height: 120px;
+            margin-bottom: 10px;
+            resize: vertical;
+            outline: none;
+        }
+        .admin-panel textarea:focus {
+            border-color: #ccc;
+        }
+        .small-btn {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            width: auto;
+            display: inline-block;
+            margin-right: 5px;
+        }
+        .timer-text {
+            font-size: 1rem;
+            margin: 15px 0;
+            color: #aaa;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.6s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .status-bar {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- Страница 1: Логин -->
+        <div id="loginPage">
+            <h1>PYRAMID GAME</h1>
+            <input type="text" id="nameInput" placeholder="Введите ваше имя" autocomplete="off" autofocus>
+            <p class="error hidden" id="loginError"></p>
+            <p class="success hidden" id="loginSuccess"></p>
+            <button id="nextBtn" disabled>Next</button>
+            
+            <div style="margin-top: 30px; font-size: 0.7rem; color: #333;">
+                <a href="#" id="showCreatorLink" style="color: #444; text-decoration: none;">creator access</a>
+            </div>
+            <div id="creatorCodeBox" class="hidden" style="margin-top: 10px;">
+                <input type="password" id="creatorCodeInput" placeholder="Код создателя" style="font-size: 0.9rem; width: 200px; display: inline; margin-right: 5px;">
+                <button id="creatorEnterBtn" class="small-btn" style="width: auto; display: inline;">Войти</button>
+            </div>
+        </div>
+
+        <!-- Страница 2: Голосование -->
+        <div id="votePage" class="hidden">
+            <h2>VOTE</h2>
+            <p class="info">Выберите 5 разных имён. Нельзя голосовать за себя.</p>
+            <div id="voteFields"></div>
+            <p class="error hidden" id="voteError"></p>
+            <p class="success hidden" id="voteSuccess"></p>
+            <button id="confirmBtn">Confirm</button>
+            <p class="status-bar" id="voteStatus"></p>
+        </div>
+
+        <!-- Страница 3: Ожидание / Результаты -->
+        <div id="resultPage" class="hidden">
+            <h2 id="resultTitle">Wait for the voting results</h2>
+            <div id="resultsContainer" class="hidden"></div>
+            <p class="timer-text hidden" id="timerInfo"></p>
+            <p class="status-bar" id="resultStatus"></p>
+            
+            <div style="margin-top: 30px;">
+                <button id="backToLoginBtn" class="small-btn" style="width: auto; background: transparent; border: 1px solid #333; color: #aaa;">Выйти</button>
+            </div>
+        </div>
+        
+        <!-- Админ-панель (управление участниками) -->
+        <div id="adminPage" class="hidden">
+            <h2>УПРАВЛЕНИЕ</h2>
+            <div class="admin-panel">
+                <h3>Список участников (каждое имя с новой строки)</h3>
+                <textarea id="participantsList" placeholder="Алиса
+Боб
+Чарли
+Диана"></textarea>
+                <button id="saveParticipantsBtn" class="small-btn">💾 Сохранить список</button>
+                <button id="resetAllBtn" class="small-btn" style="background: #400; color: #ff9999; border: 1px solid #ff5555;">🗑 Сбросить ВСЕ голоса</button>
+                <p id="adminMsg" style="margin-top: 8px; font-size: 0.9rem;"></p>
+            </div>
+            
+            <div class="admin-panel">
+                <h3>Статистика голосования</h3>
+                <p id="votingStats" style="font-size: 0.9rem;">Загрузка...</p>
+                <button id="refreshStatsBtn" class="small-btn">🔄 Обновить</button>
+            </div>
+            
+            <button id="closeAdminBtn">← Назад на главную</button>
+        </div>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════
+        // НАСТРОЙКИ
+        // ═══════════════════════════════════════
+        const BIN_ID = "6a50fe32da38895dfe4b7c28";
+        const API_KEY = "$2a$10$wNB0SDtizr5Av3xx4e6BNeIDc1hUnDhRW5T4VEDRVzFU1/jMcdJwG";
+        const CREATOR_CODE = "676901488";
+        
+        // Расписание голосования (МСК = UTC+3)
+        const VOTE_START_DAY = 4;   // Четверг
+        const VOTE_START_HOUR = 14; // 14:00 МСК
+        const VOTE_END_DAY = 5;     // Пятница
+        const VOTE_END_HOUR = 12;   // 12:00 МСК
+
+        // ═══════════════════════════════════════
+        // ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+        // ═══════════════════════════════════════
+        let participants = [];
+        let votes = {};
+        let currentUser = null;
+
+        // ═══════════════════════════════════════
+        // DOM-ЭЛЕМЕНТЫ
+        // ═══════════════════════════════════════
+        const loginPage = document.getElementById('loginPage');
+        const votePage = document.getElementById('votePage');
+        const resultPage = document.getElementById('resultPage');
+        const adminPage = document.getElementById('adminPage');
+        
+        const nameInput = document.getElementById('nameInput');
+        const nextBtn = document.getElementById('nextBtn');
+        const loginError = document.getElementById('loginError');
+        const loginSuccess = document.getElementById('loginSuccess');
+        
+        const voteFieldsDiv = document.getElementById('voteFields');
+        const voteError = document.getElementById('voteError');
+        const voteSuccess = document.getElementById('voteSuccess');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const voteStatus = document.getElementById('voteStatus');
+        
+        const resultTitle = document.getElementById('resultTitle');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const timerInfo = document.getElementById('timerInfo');
+        const resultStatus = document.getElementById('resultStatus');
+        
+        const creatorCodeBox = document.getElementById('creatorCodeBox');
+        const creatorCodeInput = document.getElementById('creatorCodeInput');
+        
+        const adminMsg = document.getElementById('adminMsg');
+        const votingStats = document.getElementById('votingStats');
+
+        // ═══════════════════════════════════════
+        // API ДЛЯ РАБОТЫ С JSONBIN
+        // ═══════════════════════════════════════
+        const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+        const HEADERS = {
+            'Content-Type': 'application/json',
+            'X-Master-Key': API_KEY
+        };
+
+        async function loadData() {
+            try {
+                voteStatus.textContent = 'Загрузка данных...';
+                const response = await fetch(API_URL + '/latest', {
+                    headers: HEADERS
+                });
+                if (!response.ok) throw new Error('Ошибка загрузки');
+                const data = await response.json();
+                participants = data.record.participants || [];
+                votes = data.record.votes || {};
+                voteStatus.textContent = '';
+                resultStatus.textContent = '';
+                console.log('✅ Данные загружены. Участников:', participants.length, 'Голосов:', Object.keys(votes).length);
+                return true;
+            } catch (err) {
+                console.error('❌ Ошибка загрузки данных:', err);
+                voteStatus.textContent = '⚠ Ошибка соединения. Проверьте интернет.';
+                resultStatus.textContent = '⚠ Ошибка соединения. Проверьте интернет.';
+                return false;
+            }
+        }
+
+        async function saveData() {
+            try {
+                const record = { participants, votes };
+                const response = await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: HEADERS,
+                    body: JSON.stringify(record)
+                });
+                if (!response.ok) throw new Error('Ошибка сохранения');
+                console.log('✅ Данные сохранены');
+                return true;
+            } catch (err) {
+                console.error('❌ Ошибка сохранения:', err);
+                alert('Не удалось сохранить данные. Проверьте интернет-соединение.');
+                return false;
+            }
+        }
+
+        // ═══════════════════════════════════════
+        // ВРЕМЯ (МСК)
+        // ═══════════════════════════════════════
+        function getMoscowTime() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            return new Date(utc + (3 * 3600000));
+        }
+
+        function isVotingOpen() {
+            const msk = getMoscowTime();
+            const day = msk.getDay();
+            const hour = msk.getHours();
+            
+            if (day === VOTE_START_DAY && hour >= VOTE_START_HOUR) return true;
+            if (day === VOTE_END_DAY && hour < VOTE_END_HOUR) return true;
+            return false;
+        }
+
+        function getNextVotingTime() {
+            const msk = getMoscowTime();
+            let next = new Date(msk);
+            next.setHours(VOTE_START_HOUR, 0, 0, 0);
+            
+            let daysUntil = (VOTE_START_DAY - msk.getDay() + 7) % 7;
+            if (daysUntil === 0 && msk.getHours() >= VOTE_START_HOUR) {
+                daysUntil = 7;
+            }
+            next.setDate(next.getDate() + daysUntil);
+            return next;
+        }
+
+        function formatMoscowTime(date) {
+            return date.toLocaleString('ru-RU', { 
+                timeZone: 'Europe/Moscow',
+                day: 'numeric',
+                month: 'long',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // ═══════════════════════════════════════
+        // СТРАНИЦА ЛОГИНА
+        // ═══════════════════════════════════════
+        nameInput.addEventListener('input', () => {
+            const name = nameInput.value.trim();
+            nextBtn.disabled = name.length === 0;
+            loginError.classList.add('hidden');
+            loginSuccess.classList.add('hidden');
+        });
+
+        nameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !nextBtn.disabled) {
+                nextBtn.click();
+            }
+        });
+
+        nextBtn.addEventListener('click', async () => {
+            const name = nameInput.value.trim();
+            if (!name) return;
+            
+            loginError.classList.add('hidden');
+            loginSuccess.classList.add('hidden');
+            loginSuccess.textContent = 'Проверка данных...';
+            loginSuccess.classList.remove('hidden');
+            
+            const loaded = await loadData();
+            loginSuccess.classList.add('hidden');
+            
+            if (!loaded) {
+                loginError.textContent = 'Ошибка загрузки. Проверьте интернет и попробуйте снова.';
+                loginError.classList.remove('hidden');
+                return;
+            }
+            
+            if (!participants.includes(name)) {
+                loginError.textContent = 'Вы не в списке участников.';
+                loginError.classList.remove('hidden');
+                return;
+            }
+            
+            if (!isVotingOpen()) {
+                const nextTime = getNextVotingTime();
+                loginError.textContent = `Голосование закрыто. Следующее открытие: четверг ${formatMoscowTime(nextTime)} (МСК)`;
+                loginError.classList.remove('hidden');
+                return;
+            }
+            
+            if (votes[name]) {
+                loginError.textContent = 'Вы уже проголосовали!';
+                loginError.classList.remove('hidden');
+                return;
+            }
+            
+            currentUser = name;
+            showVotePage();
+        });
+
+        // ═══════════════════════════════════════
+        // КОД СОЗДАТЕЛЯ
+        // ═══════════════════════════════════════
+        document.getElementById('showCreatorLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            creatorCodeBox.classList.toggle('hidden');
+            if (!creatorCodeBox.classList.contains('hidden')) {
+                creatorCodeInput.focus();
+            }
+        });
+
+        document.getElementById('creatorEnterBtn').addEventListener('click', async () => {
+            const code = creatorCodeInput.value.trim();
+            if (code === CREATOR_CODE) {
+                const loaded = await loadData();
+                if (loaded || participants.length > 0) {
+                    showAdminPage();
+                    creatorCodeInput.value = '';
+                    creatorCodeBox.classList.add('hidden');
+                } else {
+                    alert('Не удалось загрузить данные. Проверьте интернет.');
+                }
+            } else {
+                alert('Неверный код');
+                creatorCodeInput.value = '';
+            }
+        });
+
+        creatorCodeInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('creatorEnterBtn').click();
+            }
+        });
+
+        // ═══════════════════════════════════════
+        // СТРАНИЦА ГОЛОСОВАНИЯ
+        // ═══════════════════════════════════════
+        function showVotePage() {
+            loginPage.classList.add('hidden');
+            votePage.classList.remove('hidden');
+            resultPage.classList.add('hidden');
+            adminPage.classList.add('hidden');
+            
+            voteError.classList.add('hidden');
+            voteSuccess.classList.add('hidden');
+            voteStatus.textContent = '';
+            
+            const available = participants.filter(p => p !== currentUser);
+            
+            if (available.length < 5) {
+                voteError.textContent = 'Недостаточно участников (нужно минимум 5 кроме вас).';
+                voteError.classList.remove('hidden');
+                confirmBtn.disabled = true;
+                voteFieldsDiv.innerHTML = '<p style="color:#aaa;">Недостаточно участников для голосования.</p>';
+                return;
+            }
+            
+            voteFieldsDiv.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const row = document.createElement('div');
+                row.className = 'vote-row';
+                row.innerHTML = `
+                    <label>${i+1}.</label>
+                    <select class="vote-select" data-index="${i}">
+                        <option value="">-- Выберите имя --</option>
+                        ${available.map(p => `<option value="${p}">${p}</option>`).join('')}
+  
