@@ -127,9 +127,9 @@
 </div>
 
 <script>
-    // НАСТРОЙКИ JSONBIN
-    var BIN_ID = "6a50fe32da38895dfe4b7c28";
-    var API_KEY = "$2a$10$wNB0SDtizr5Av3xx4e6BNeIDc1hUnDhRW5T4VEDRVzFU1/jMcdJwG";
+    // НАСТРОЙКИ
+    var BIN_ID = "6a51322cf5f4af5e297e0b16";
+    var API_KEY = "$2a$10$iyUgRWDiQIdJvMhFJKX.qeSk1dVgF3DMqeOtxrS10UsVw.MeREIoG";
     var API_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
     var HEADERS = {
         'Content-Type': 'application/json',
@@ -153,7 +153,6 @@
     var votes = {};
     var user = null;
 
-    // ЗАГРУЗКА С СЕРВЕРА
     async function loadFromServer(){
         try {
             var resp = await fetch(API_URL + '/latest', { headers: HEADERS });
@@ -324,7 +323,6 @@
             return;
         }
 
-        // Загружаем свежие данные перед сохранением
         await loadFromServer();
         if(votes[user]){
             document.getElementById('voteError').textContent = 'Вы уже проголосовали';
