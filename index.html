@@ -128,7 +128,7 @@
 
 <script>
     var BIN_ID = "6a513531da38895dfe4c8eb4";
-    var API_KEY = "$2a$10$M0eOvT7rOhquS0aO0pK/C.l/QJuepANY6bTYA7JENugSLaeLx5Q6u";
+    var API_KEY = "$2a$10$U9wr1yLzEYWJ8SmhafWJyOD2F6dpNDhXXypgNP.MsikMPUqEz0ROO";
     var API_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
 
     var GAME_NUMBER = 4;
@@ -168,7 +168,7 @@
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Master-Key': API_KEY
+                    'X-Access-Key': API_KEY
                 },
                 body: JSON.stringify({ players: players, votes: votes })
             });
