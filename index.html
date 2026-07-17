@@ -127,14 +127,9 @@
 </div>
 
 <script>
-    // НАСТРОЙКИ
     var BIN_ID = "6a513531da38895dfe4c8eb4";
     var API_KEY = "$2a$10$M0eOvT7rOhquS0aO0pK/C.l/QJuepANY6bTYA7JENugSLaeLx5Q6u";
     var API_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
-    var HEADERS = {
-        'Content-Type': 'application/json',
-        'X-Master-Key': API_KEY
-    };
 
     var GAME_NUMBER = 4;
     var START_DAY = 4, START_HOUR = 12;
@@ -155,7 +150,7 @@
 
     async function loadFromServer(){
         try {
-            var resp = await fetch(API_URL + '/latest', { headers: HEADERS });
+            var resp = await fetch(API_URL + '/latest');
             if(!resp.ok) throw new Error('Ошибка');
             var data = await resp.json();
             players = data.record.players || [];
@@ -171,7 +166,10 @@
         try {
             var resp = await fetch(API_URL, {
                 method: 'PUT',
-                headers: HEADERS,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Master-Key': API_KEY
+                },
                 body: JSON.stringify({ players: players, votes: votes })
             });
             return resp.ok;
@@ -211,7 +209,6 @@
         return !isVotingOpen() && !isResultsVisible();
     }
 
-    // ЛОГИН
     var nameInp = document.getElementById('nameInput');
     var nextBtn = document.getElementById('nextBtn');
     var loginErr = document.getElementById('loginError');
@@ -273,7 +270,6 @@
         show('votePage');
     });
 
-    // CREATOR
     document.getElementById('showCreator').addEventListener('click', function(){
         document.getElementById('creatorBox').classList.toggle('hidden');
     });
@@ -289,7 +285,6 @@
         }
     });
 
-    // ГОЛОСОВАНИЕ
     function buildVote(){
         var d = document.getElementById('voteFields');
         d.innerHTML = '';
@@ -333,7 +328,7 @@
         votes[user] = ch;
         var saved = await saveToServer();
         if(!saved){
-            document.getElementById('voteError').textContent = 'Ошибка сохранения';
+            document.getElementById('voteError').textContent = 'Ошибка сохранения. Попробуйте ещё раз.';
             document.getElementById('voteError').classList.remove('hidden');
             return;
         }
@@ -381,7 +376,6 @@
         show('loginPage');
     });
 
-    // АДМИН
     function buildAdmin(){
         document.getElementById('adminList').value = players.join('\n');
         document.getElementById('adminMsg').textContent = '';
